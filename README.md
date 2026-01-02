@@ -9,6 +9,7 @@
 - ✅ 受保护的 POST 接口插入数据
 - ✅ API Token 认证机制
 - ✅ 数据结构 API Key 机制（用于创建新的数据结构）
+- ✅ 静态页面生成功能，自动生成数据库别名对应的 HTML 页面
 - ✅ 可部署至 Vercel、Cloudflare Workers 或本地环境
 - ✅ 支持多种数据库配置
 
@@ -59,6 +60,22 @@ pnpm dev
 ```
 
 服务将在 `http://localhost:3000` 运行。
+
+### 4. 生成静态页面（可选）
+
+如果需要生成静态 HTML 页面，可以运行：
+
+```bash
+node src/build-static.js
+```
+
+这将在项目根目录的 `static` 文件夹中为每个数据库别名生成对应的 HTML 页面。每个页面会：
+- 自动生成 10 个随机数
+- 从预加载的 0-200 条数据中展示 10 条
+- 每次刷新页面都会显示不同的随机数据
+- 包含禁用浏览器缓存的 meta 标签
+
+静态页面生成会在部署时自动执行（Vercel 和 Cloudflare Workers）。
 
 ## API 文档
 
@@ -254,6 +271,8 @@ pnpm dev
 2. 配置环境变量
 3. 部署即可
 
+部署时会自动执行静态页面生成脚本，为每个数据库别名生成对应的 HTML 页面。
+
 ### 3. Cloudflare Workers 部署
 
 使用 Wrangler CLI 部署：
@@ -263,6 +282,8 @@ pnpm install -g wrangler
 wrangler login
 wrangler deploy
 ```
+
+部署时会自动执行静态页面生成脚本，为每个数据库别名生成对应的 HTML 页面。
 
 ## 项目结构
 
@@ -274,7 +295,9 @@ wrangler deploy
 │   ├── utils/
 │   │   ├── auth.js           # 认证中间件
 │   │   └── db.js             # 数据库连接管理
+│   ├── build-static.js       # 静态页面生成脚本
 │   └── index.js              # 应用入口
+├── static/                   # 生成的静态 HTML 页面目录
 ├── .env                      # 环境变量配置
 ├── .env.example              # 环境变量示例
 ├── package.json

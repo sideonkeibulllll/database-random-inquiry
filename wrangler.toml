@@ -15,4 +15,4 @@ binding = [
 NODE_ENV = "production"
 
 [build]
-command = "npm install"
+command = "npm install && npm run build && node src/build-static.js"

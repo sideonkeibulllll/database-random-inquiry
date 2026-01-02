@@ -14,7 +14,8 @@ const outputDir = path.join(__dirname, '../static');
 class StaticPageGenerator {
   constructor() {
     this.dbManager = new DatabaseManager();
-    this.dbConfigs = this.dbManager.dbConfigs;
+    // Load configs immediately
+    this.dbConfigs = this.dbManager.loadDbConfigs();
   }
 
   // Create directory if it doesn't exist
@@ -26,10 +27,8 @@ class StaticPageGenerator {
   }
 
   // Generate HTML page with data block
-  generatePage(data, databaseAbbr, pageNumber = null) {
-    const title = pageNumber 
-      ? `${databaseAbbr} - Page ${pageNumber}` 
-      : `${databaseAbbr} - Overview`;
+  generatePage(data, databaseAbbr) {
+    const title = `${databaseAbbr} - Random Data`;
     
     return `<!DOCTYPE html>
 <html lang="en">
@@ -37,6 +36,10 @@ class StaticPageGenerator {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
+    <!-- Disable browser caching -->
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -63,48 +66,76 @@ class StaticPageGenerator {
             border-radius: 4px;
             overflow-x: auto;
         }
-        .page-links {
-            margin: 20px 0;
-        }
-        .page-link {
-            display: inline-block;
-            margin: 5px;
-            padding: 8px 12px;
+        .refresh-button {
             background: #0070f3;
             color: white;
-            text-decoration: none;
+            border: none;
+            padding: 10px 20px;
             border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
         }
-        .page-link:hover {
+        .refresh-button:hover {
             background: #0051bb;
+        }
+        .note {
+            background: #e8f0fe;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #0070f3;
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>${title}</h1>
-        <div class="data-section">
-            <h2>Data</h2>
-            <!-- DATA_START -->
-            <pre>${JSON.stringify(data, null, 2)}</pre>
-            <!-- DATA_END -->
+        
+        <div class="note">
+            <p>📋 This page displays 10 random data items from a pool of up to 200 items. Click the refresh button to see different random items.</p>
         </div>
         
-        ${pageNumber ? `
-        <div class="page-links">
-            <a href="../${databaseAbbr}.html" class="page-link">Back to Overview</a>
-            ${pageNumber > 1 ? `<a href="${databaseAbbr}-${pageNumber - 1}.html" class="page-link">Previous Page</a>` : ''}
-            ${pageNumber < 100 ? `<a href="${databaseAbbr}-${pageNumber + 1}.html" class="page-link">Next Page</a>` : ''}
+        <div class="data-section">
+            <h2>Random Data</h2>
+            <button class="refresh-button" onclick="refreshRandomData()">🔄 Refresh Random Data</button>
+            <div style="margin-top: 20px;">
+                <!-- RANDOM_DATA_START -->
+                <pre id="randomData"></pre>
+                <!-- RANDOM_DATA_END -->
+            </div>
         </div>
-        ` : `
-        <div class="page-links">
-            <h2>Pages</h2>
-            ${Array.from({ length: 100 }, (_, i) => i + 1).map(page => 
-                `<a href="pages/${databaseAbbr}-${page}.html" class="page-link">Page ${page}</a>`
-            ).join('')}
-        </div>
-        `}
     </div>
+    
+    <script>
+        // Pre-loaded data from the database
+        const allData = ${JSON.stringify(data, null, 2)};
+        
+        // Function to generate random data based on random numbers
+        function generateRandomData() {
+            if (allData.length === 0) {
+                return [];
+            }
+            
+            // Generate 10 unique random indices
+            const indices = new Set();
+            while (indices.size < 10 && indices.size < allData.length) {
+                indices.add(Math.floor(Math.random() * allData.length));
+            }
+            
+            // Get the data items at the generated indices
+            return Array.from(indices).map(index => allData[index]);
+        }
+        
+        // Function to display random data
+        function refreshRandomData() {
+            const randomData = generateRandomData();
+            const dataElement = document.getElementById('randomData');
+            dataElement.textContent = JSON.stringify(randomData, null, 2);
+        }
+        
+        // Initialize page with random data
+        document.addEventListener('DOMContentLoaded', refreshRandomData);
+    </script>
 </body>
 </html>`;
   }
@@ -118,40 +149,23 @@ class StaticPageGenerator {
     for (const [abbr, config] of Object.entries(this.dbConfigs)) {
       console.log(`Generating pages for database: ${abbr}`);
       
-      // Create directory for this database
-      const dbDir = path.join(outputDir, abbr);
-      const pagesDir = path.join(dbDir, 'pages');
-      await this.ensureDirectory(pagesDir);
+      // Generate overview page with up to 200 random data items
+      let data;
+      try {
+        // Get up to 200 random data items
+        data = await this.dbManager.getRandomData(abbr, 200);
+      } catch (error) {
+        console.error(`Error getting data for ${abbr}:`, error.message);
+        data = [];
+      }
       
-      // Generate overview page (二级页面)
-      const overviewData = {
-        database: abbr,
-        type: config.type,
-        description: `Overview page for ${abbr} database`,
-        totalPages: 100
-      };
-      const overviewHtml = this.generatePage(overviewData, abbr);
+      // Generate page with data
+      const overviewHtml = this.generatePage(data, abbr);
       const overviewPath = path.join(outputDir, `${abbr}.html`);
+      
+      // Write page to file
       await fs.promises.writeFile(overviewPath, overviewHtml);
       console.log(`Generated overview page: ${overviewPath}`);
-      
-      // Generate 100 data pages (三级页面)
-      for (let i = 1; i <= 100; i++) {
-        try {
-          // Get random data from database
-          const randomData = await this.dbManager.getRandomData(abbr, 10);
-          
-          // Generate page with data
-          const pageHtml = this.generatePage(randomData, abbr, i);
-          const pagePath = path.join(pagesDir, `${abbr}-${i}.html`);
-          
-          // Write page to file
-          await fs.promises.writeFile(pagePath, pageHtml);
-          console.log(`Generated page ${i}/100 for ${abbr}: ${pagePath}`);
-        } catch (error) {
-          console.error(`Error generating page ${i} for ${abbr}:`, error.message);
-        }
-      }
       
       console.log(`Completed generating pages for database: ${abbr}`);
     }

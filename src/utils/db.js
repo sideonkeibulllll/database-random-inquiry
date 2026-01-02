@@ -4,7 +4,7 @@ import { Client } from 'pg';
 class DatabaseManager {
   constructor() {
     this.connections = new Map();
-    this.dbConfigs = this.loadDbConfigs();
+    this.dbConfigs = null;
     this.queryCache = new Map();
     this.cacheTTL = 3600000; // 1 hour in milliseconds
   }
@@ -33,6 +33,11 @@ class DatabaseManager {
   }
 
   async getConnection(abbr) {
+    // Load configs if not already loaded
+    if (!this.dbConfigs) {
+      this.dbConfigs = this.loadDbConfigs();
+    }
+
     const config = this.dbConfigs[abbr];
     if (!config) {
       throw new Error(`Database configuration not found for abbreviation: ${abbr}`);
@@ -113,7 +118,7 @@ class DatabaseManager {
     }
   }
 
-  async getRandomData(abbr, limit = 10) {
+  async getRandomData(abbr, limit = 200) {
     // Generate cache key
     const cacheKey = `${abbr}_random_${limit}`;
     
@@ -151,8 +156,25 @@ class DatabaseManager {
           if (count === 0) {
             data = [];
           } else {
-            const skip = Math.floor(Math.random() * Math.max(count, 1)) || 0;
-            data = await collection.find().skip(skip).limit(limit).toArray();
+            if (count <= limit) {
+              // If data count is less than or equal to limit, get all data
+              data = await collection.find().toArray();
+            } else {
+              // If data count is more than limit, use algorithm to get random data
+              // Generate a random split point
+              const splitPoint = Math.floor(Math.random() * (count - limit)) + 1;
+              const endRange = splitPoint + limit;
+              
+              // Get data from splitPoint to endRange
+              data = await collection.find().skip(splitPoint).limit(limit).toArray();
+              
+              // If we didn't get enough data, get the remaining from the beginning
+              if (data.length < limit) {
+                const remaining = limit - data.length;
+                const startData = await collection.find().limit(remaining).toArray();
+                data = [...data, ...startData];
+              }
+            }
             data = data.map(filterEmptyValues);
           }
       }
@@ -171,12 +193,34 @@ class DatabaseManager {
           if (count === 0) {
             data = [];
           } else {
-            const offset = Math.floor(Math.random() * Math.max(count, 1)) || 0;
-            const queryResult = await connection.query(
-              `SELECT * FROM ${tableName} OFFSET $1 LIMIT $2`, 
-              [offset, limit]
-            );
-            data = queryResult.rows.map(filterEmptyValues);
+            if (count <= limit) {
+              // If data count is less than or equal to limit, get all data
+              const queryResult = await connection.query(`SELECT * FROM ${tableName}`);
+              data = queryResult.rows;
+            } else {
+              // If data count is more than limit, use algorithm to get random data
+              // Generate a random split point
+              const splitPoint = Math.floor(Math.random() * (count - limit)) + 1;
+              const endRange = splitPoint + limit;
+              
+              // Get data from splitPoint to endRange
+              const queryResult = await connection.query(
+                `SELECT * FROM ${tableName} OFFSET $1 LIMIT $2`, 
+                [splitPoint - 1, limit] // PostgreSQL uses 1-based indexing
+              );
+              data = queryResult.rows;
+              
+              // If we didn't get enough data, get the remaining from the beginning
+              if (data.length < limit) {
+                const remaining = limit - data.length;
+                const startResult = await connection.query(
+                  `SELECT * FROM ${tableName} LIMIT $1`,
+                  [remaining]
+                );
+                data = [...data, ...startResult.rows];
+              }
+            }
+            data = data.map(filterEmptyValues);
           }
       }
     } else {

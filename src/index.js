@@ -3,6 +3,10 @@ import { handleDatabaseRequest, handleInsertData } from './api/database.js';
 import { tokenAuth } from './utils/auth.js';
 import { serve } from '@hono/node-server';
 
+// Load environment variables from .env file if available
+import dotenv from 'dotenv';
+dotenv.config();
+
 const app = new Hono();
 
 // Public GET route for API access with path (e.g., /api/a/1 -> dbAbbr = a)
