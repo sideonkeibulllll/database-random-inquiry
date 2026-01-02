@@ -14,12 +14,12 @@
       "dest": "/src/index.js"
     },
     {
-      "handle": "filesystem"
-    },
-    {
       "src": "/(.*)",
       "dest": "/$1.html",
       "check": true
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",

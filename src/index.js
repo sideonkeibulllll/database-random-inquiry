@@ -17,14 +17,16 @@ const publicDir = path.join(__dirname, '../public');
 
 const app = new Hono();
 
-// Serve static files from public directory (highest priority)
-app.use('/*', serveStatic({ root: './public' }));
+// Serve static files from public directory (highest priority) - only works in Node.js environment
+if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
+  app.use('/*', serveStatic({ root: './public' }));
+}
 
 // Handle direct path access with .html extension fallback (e.g., /a -> a.html)
 app.get('/:dbAbbr', async (c) => {
   const dbAbbr = c.req.param('dbAbbr');
   
-  // Try to serve static HTML file first
+  // Try to serve static HTML file first (only works in Node.js environment)
   const htmlPath = path.join(publicDir, `${dbAbbr}.html`);
   
   if (fs.existsSync(htmlPath)) {
