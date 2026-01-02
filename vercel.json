@@ -18,6 +18,11 @@
     },
     {
       "src": "/(.*)",
+      "dest": "/$1.html",
+      "check": true
+    },
+    {
+      "src": "/(.*)",
       "dest": "/src/index.js"
     }
   ]
