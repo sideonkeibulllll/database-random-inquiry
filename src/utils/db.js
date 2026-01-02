@@ -148,13 +148,13 @@ class DatabaseManager {
       } else {
         const collection = db.collection(collections[0].name);
         const count = await collection.countDocuments();
-        if (count === 0) {
-          data = [];
-        } else {
-          const skip = Math.floor(Math.random() * (count - limit + 1)) || 0;
-          data = await collection.find().skip(skip).limit(limit).toArray();
-          data = data.map(filterEmptyValues);
-        }
+          if (count === 0) {
+            data = [];
+          } else {
+            const skip = Math.floor(Math.random() * Math.max(count, 1)) || 0;
+            data = await collection.find().skip(skip).limit(limit).toArray();
+            data = data.map(filterEmptyValues);
+          }
       }
     } else if (config.type === 'postgres') {
       const result = await connection.query(`
@@ -168,16 +168,16 @@ class DatabaseManager {
         const tableName = result.rows[0].table_name;
         const countResult = await connection.query(`SELECT COUNT(*) as total FROM ${tableName}`);
         const count = parseInt(countResult.rows[0].total);
-        if (count === 0) {
-          data = [];
-        } else {
-          const offset = Math.floor(Math.random() * (count - limit + 1)) || 0;
-          const queryResult = await connection.query(
-            `SELECT * FROM ${tableName} OFFSET $1 LIMIT $2`, 
-            [offset, limit]
-          );
-          data = queryResult.rows.map(filterEmptyValues);
-        }
+          if (count === 0) {
+            data = [];
+          } else {
+            const offset = Math.floor(Math.random() * Math.max(count, 1)) || 0;
+            const queryResult = await connection.query(
+              `SELECT * FROM ${tableName} OFFSET $1 LIMIT $2`, 
+              [offset, limit]
+            );
+            data = queryResult.rows.map(filterEmptyValues);
+          }
       }
     } else {
       data = [];
