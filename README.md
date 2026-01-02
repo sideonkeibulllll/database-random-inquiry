@@ -202,7 +202,7 @@ mongodb+srv://username:password@cluster0.example.com/database
 
 ```env
 # PostgreSQL 配置
-DB_A_URL=postgresql://zanzhu:HjR5L2B4RTkc@199.68.217.243:5432/zanzhu
+DB_A_URL=postgresql://username:password@localhost:5432/database
 
 # MongoDB 配置  
 DB_B_URL=mongodb://localhost:27017/mydatabase
