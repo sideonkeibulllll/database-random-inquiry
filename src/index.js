@@ -5,6 +5,9 @@ import { serve } from '@hono/node-server';
 
 const app = new Hono();
 
+// Public GET route for API access with path (e.g., /api/a/1 -> dbAbbr = a)
+app.get('/api/:dbAbbr/*', handleDatabaseRequest);
+
 // Public GET route for reading data (only read access)
 app.get('/api/:dbAbbr', handleDatabaseRequest);
 
