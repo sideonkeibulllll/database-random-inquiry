@@ -31,3 +31,8 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# project specific
+.trae/
+static/
+temp_repo/
