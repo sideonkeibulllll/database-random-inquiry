@@ -5,7 +5,13 @@ import { fileURLToPath } from 'url';
 
 // Load environment variables from .env file if available
 import dotenv from 'dotenv';
-dotenv.config();
+const result = dotenv.config();
+if (result.error) {
+  console.error('Error loading .env file:', result.error);
+} else {
+  console.log('Loaded environment variables from .env file');
+  console.log('DB_A_URL:', process.env.DB_A_URL);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
