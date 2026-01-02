@@ -69,7 +69,7 @@ pnpm dev
 node src/build-static.js
 ```
 
-这将在项目根目录的 `static` 文件夹中为每个数据库别名生成对应的 HTML 页面。每个页面会：
+这将在项目根目录的 `public` 文件夹中为每个数据库别名生成对应的 HTML 页面。每个页面会：
 - 自动生成 10 个随机数
 - 从预加载的 0-200 条数据中展示 10 条
 - 每次刷新页面都会显示不同的随机数据
@@ -297,7 +297,7 @@ wrangler deploy
 │   │   └── db.js             # 数据库连接管理
 │   ├── build-static.js       # 静态页面生成脚本
 │   └── index.js              # 应用入口
-├── static/                   # 生成的静态 HTML 页面目录
+├── public/                   # 生成的静态 HTML 页面目录
 ├── .env                      # 环境变量配置
 ├── .env.example              # 环境变量示例
 ├── package.json
