@@ -1,0 +1,13 @@
+name = "database-api"
+main = "src/index.js"
+compatibility_date = "2023-12-18"
+
+[[r2_buckets]]
+name = "my-bucket"
+binding = "MY_BUCKET"
+
+[vars]
+# Add environment variables here
+
+[env.production]
+name = "database-api-production"
