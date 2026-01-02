@@ -36,3 +36,4 @@ lerna-debug.log*
 .trae/
 static/
 temp_repo/
+public/

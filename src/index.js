@@ -1,25 +1,46 @@
 import { Hono } from 'hono';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { handleDatabaseRequest, handleInsertData } from './api/database.js';
 import { tokenAuth } from './utils/auth.js';
 import { serve } from '@hono/node-server';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Load environment variables from .env file if available
 import dotenv from 'dotenv';
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicDir = path.join(__dirname, '../public');
+
 const app = new Hono();
+
+// Serve static files from public directory (highest priority)
+app.use('/*', serveStatic({ root: './public' }));
+
+// Handle direct path access with .html extension fallback (e.g., /a -> a.html)
+app.get('/:dbAbbr', async (c) => {
+  const dbAbbr = c.req.param('dbAbbr');
+  
+  // Try to serve static HTML file first
+  const htmlPath = path.join(publicDir, `${dbAbbr}.html`);
+  
+  if (fs.existsSync(htmlPath)) {
+    const html = fs.readFileSync(htmlPath, 'utf-8');
+    return c.html(html);
+  }
+  
+  // Fall back to API if no HTML file exists
+  return handleDatabaseRequest(c);
+});
 
 // Public GET route for API access with path (e.g., /api/a/1 -> dbAbbr = a)
 app.get('/api/:dbAbbr/*', handleDatabaseRequest);
 
 // Public GET route for reading data (only read access)
 app.get('/api/:dbAbbr', handleDatabaseRequest);
-
-// Public GET route for direct path access (e.g., /a/1 -> /api/a)
-app.get('/:dbAbbr/*', handleDatabaseRequest);
-
-// Public GET route for direct db access (e.g., /a -> /api/a)
-app.get('/:dbAbbr', handleDatabaseRequest);
 
 // Protected POST route for inserting data (requires token, only insert access)
 app.post('/api/:dbAbbr', tokenAuth(), handleInsertData);
