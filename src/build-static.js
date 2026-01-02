@@ -5,13 +5,7 @@ import { fileURLToPath } from 'url';
 
 // Load environment variables from .env file if available
 import dotenv from 'dotenv';
-const result = dotenv.config();
-if (result.error) {
-  console.error('Error loading .env file:', result.error);
-} else {
-  console.log('Loaded environment variables from .env file');
-  console.log('DB_A_URL:', process.env.DB_A_URL);
-}
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -163,6 +157,65 @@ class StaticPageGenerator {
     }
     
     console.log('All static pages generated successfully!');
+    
+    // Generate blank index.html as entry point
+    const indexHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database API</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Database API</h1>
+        <p>Welcome to the Database API. Select a database to view its data:</p>
+        <div class="database-links">
+            ${Object.entries(this.dbConfigs).map(([abbr]) => 
+                `<a href="./${abbr}.html" class="database-link">${abbr}</a>`
+            ).join('')}
+        </div>
+    </div>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .database-links {
+            margin-top: 20px;
+        }
+        .database-link {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px 15px;
+            background: #0070f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .database-link:hover {
+            background: #0051bb;
+        }
+    </style>
+</body>
+</html>`;
+    
+    const indexPath = path.join(outputDir, 'index.html');
+    await fs.promises.writeFile(indexPath, indexHtml);
+    console.log(`Generated index.html at: ${indexPath}`);
   }
 }
 

@@ -1,7 +1,5 @@
 {
   "version": 2,
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm run build",
-  "outputDirectory": "static",
-  "framework": null
+  "buildCommand": "pnpm run build"
 }
