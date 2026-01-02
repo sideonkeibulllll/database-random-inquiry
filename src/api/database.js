@@ -6,6 +6,10 @@ export async function handleDatabaseRequest(c) {
   
   try {
     const data = await dbManager.getRandomData(dbAbbr, 10);
+    
+    // Set Cache-Control header for Vercel edge caching
+    c.header('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    
     return c.json({
       success: true,
       data,
