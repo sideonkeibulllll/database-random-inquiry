@@ -10,22 +10,8 @@
   ],
   "routes": [
     {
-      "src": "/(.*)\\.html",
-      "dest": "/static/$1.html",
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
-      }
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1",
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
-      }
-    },
-    {
-      "src": "/(.*)",
-      "dest": "src/index.js"
+      "src": "/api/(.*)",
+      "dest": "/src/index.js"
     }
   ]
 }
