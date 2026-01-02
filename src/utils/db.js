@@ -59,6 +59,18 @@ class DatabaseManager {
     const connection = await this.getConnection(abbr);
     const config = this.dbConfigs[abbr];
 
+    // 过滤空值和默认值的函数
+    const filterEmptyValues = (item) => {
+      const filtered = {};
+      for (const [key, value] of Object.entries(item)) {
+        // 过滤掉 null、undefined、空字符串
+        if (value !== null && value !== undefined && value !== '') {
+          filtered[key] = value;
+        }
+      }
+      return filtered;
+    };
+
     if (config.type === 'mongodb') {
       const db = connection.db();
       const collections = await db.listCollections().toArray();
@@ -71,7 +83,8 @@ class DatabaseManager {
         return [];
       }
       const skip = Math.floor(Math.random() * (count - limit + 1)) || 0;
-      return await collection.find().skip(skip).limit(limit).toArray();
+      const data = await collection.find().skip(skip).limit(limit).toArray();
+      return data.map(filterEmptyValues);
     } else if (config.type === 'postgres') {
       const result = await connection.query(`
         SELECT table_name 
@@ -88,35 +101,80 @@ class DatabaseManager {
         return [];
       }
       const offset = Math.floor(Math.random() * (count - limit + 1)) || 0;
-      return (await connection.query(`SELECT * FROM ${tableName} OFFSET $1 LIMIT $2`, [offset, limit])).rows;
+      const data = (await connection.query(`SELECT * FROM ${tableName} OFFSET $1 LIMIT $2`, [offset, limit])).rows;
+      return data.map(filterEmptyValues);
     }
 
     return [];
   }
 
-  async insertData(abbr, data) {
+  async insertData(abbr, data, allowCreateStructure = false) {
     const connection = await this.getConnection(abbr);
     const config = this.dbConfigs[abbr];
 
     if (config.type === 'mongodb') {
       const db = connection.db();
       const collections = await db.listCollections().toArray();
+      let collection;
+      
       if (collections.length === 0) {
-        throw new Error('No collections found in the database');
+        if (!allowCreateStructure) {
+          throw new Error('No collections found in the database');
+        }
+        // Create a new collection with a default name
+        const collectionName = 'default_collection';
+        await db.createCollection(collectionName);
+        collection = db.collection(collectionName);
+      } else {
+        collection = db.collection(collections[0].name);
       }
-      const collection = db.collection(collections[0].name);
+      
       const result = await collection.insertOne(data);
       return { insertedId: result.insertedId };
     } else if (config.type === 'postgres') {
+      let tableName;
+      
       const result = await connection.query(`
         SELECT table_name 
         FROM information_schema.tables 
         WHERE table_schema = 'public'
       `);
+      
       if (result.rows.length === 0) {
-        throw new Error('No tables found in the database');
+        if (!allowCreateStructure) {
+          throw new Error('No tables found in the database');
+        }
+        // Create a new table with default name and infer columns from data
+        tableName = 'default_table';
+        const columns = Object.keys(data);
+        const columnsDefinition = columns.map(col => {
+          const value = data[col];
+          let type = 'TEXT';
+          
+          if (typeof value === 'number') {
+            if (Number.isInteger(value)) {
+              type = 'INTEGER';
+            } else {
+              type = 'DOUBLE PRECISION';
+            }
+          } else if (typeof value === 'boolean') {
+            type = 'BOOLEAN';
+          } else if (value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value)))) {
+            type = 'TIMESTAMP';
+          }
+          
+          return `${col} ${type}`;
+        }).join(', ');
+        
+        await connection.query(`
+          CREATE TABLE ${tableName} (
+            id SERIAL PRIMARY KEY,
+            ${columnsDefinition}
+          )
+        `);
+      } else {
+        tableName = result.rows[0].table_name;
       }
-      const tableName = result.rows[0].table_name;
       
       const columns = Object.keys(data);
       const values = Object.values(data);
