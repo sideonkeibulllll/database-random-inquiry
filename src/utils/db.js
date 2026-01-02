@@ -217,13 +217,12 @@ class DatabaseManager {
     } else if (config.type === 'postgres') {
       let tableName;
       
-      const result = await connection.query(`
+      const tableResult = await connection.query(`
         SELECT table_name 
         FROM information_schema.tables 
         WHERE table_schema = 'public'
       `);
-      
-      if (result.rows.length === 0) {
+      if (tableResult.rows.length === 0) {
         if (!allowCreateStructure) {
           throw new Error('No tables found in the database');
         }
@@ -256,7 +255,7 @@ class DatabaseManager {
           )
         `);
       } else {
-        tableName = result.rows[0].table_name;
+        tableName = tableResult.rows[0].table_name;
       }
       
       const columns = Object.keys(data);
